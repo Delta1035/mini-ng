@@ -4,11 +4,18 @@ import { RenderedComponent } from './runtime';
 
 type Tickable = Pick<RenderedComponent<unknown>, 'tick'>;
 
-export function createAutoTickZone(appRef: Tickable): Zone {
+export interface AutoTickZoneController {
+  zone: Zone;
+  destroy: () => void;
+}
+
+export function createAutoTickZone(appRef: Tickable): AutoTickZoneController {
   let scheduled = false;
+  let destroyed = false;
+  let sawAsyncTask = false;
 
   const scheduleTick = () => {
-    if (scheduled) {
+    if (scheduled || destroyed) {
       return;
     }
 
@@ -16,19 +23,39 @@ export function createAutoTickZone(appRef: Tickable): Zone {
     Zone.root.run(() => {
       setTimeout(() => {
         scheduled = false;
-        appRef.tick();
+
+        if (!destroyed) {
+          appRef.tick();
+        }
       }, 0);
     });
   };
 
-  return Zone.current.fork({
+  const zone = Zone.current.fork({
     name: 'angular-lite-auto-tick',
-    onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
-      try {
-        return delegate.invokeTask(target, task, applyThis, applyArgs);
-      } finally {
+    onHasTask(delegate, current, target, hasTaskState) {
+      delegate.hasTask(target, hasTaskState);
+
+      if (hasTaskState.macroTask || hasTaskState.microTask) {
+        sawAsyncTask = true;
+        return;
+      }
+
+      if (sawAsyncTask) {
         scheduleTick();
       }
+    },
+    onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
+      return delegate.invokeTask(target, task, applyThis, applyArgs);
     }
   });
+
+  return {
+    zone,
+    destroy: () => {
+      destroyed = true;
+      scheduled = false;
+    }
+  };
 }
+

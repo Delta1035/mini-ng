@@ -7,11 +7,18 @@ export function bootstrapApplicationWithZone<TContext>(
   setup: (appRef: RenderedComponent<TContext>) => void
 ): RenderedComponent<TContext> {
   const appRef = bootstrapApplication(componentType);
-  const zone = createAutoTickZone(appRef);
+  const zoneController = createAutoTickZone(appRef);
 
-  zone.run(() => {
+  zoneController.zone.run(() => {
     setup(appRef);
   });
+
+  const baseDestroy = appRef.destroy;
+
+  appRef.destroy = () => {
+    zoneController.destroy();
+    baseDestroy();
+  };
 
   return appRef;
 }

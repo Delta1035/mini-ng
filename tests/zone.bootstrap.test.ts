@@ -31,6 +31,12 @@ describe('zone bootstrap', () => {
     expect(document.querySelector('h2')?.textContent).toBe('User Name: Li Si');
     expect(document.querySelector('p')?.textContent).toBe('Age: 28');
     expect(appRef.lView.nodes[0]?.nodeName.toLowerCase()).toBe('section');
+
+    appRef.destroy();
+    appRef.instance.name = 'Wang Wu';
+    appRef.tick();
+
+    expect(document.querySelector('h2')?.textContent).toBe('User Name: Li Si');
   });
 });
 

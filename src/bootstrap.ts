@@ -19,12 +19,20 @@ export function bootstrapApplication<TContext>(
   const instance = new componentType();
   const tView = new TView(def.decls, def.vars, def.template);
   const lView = new LView(host, instance, tView);
+  let destroyed = false;
   const componentRef: RenderedComponent<TContext> = {
     instance,
     host,
     tView,
     lView,
-    tick: () => renderComponent(componentRef)
+    tick: () => {
+      if (!destroyed) {
+        renderComponent(componentRef);
+      }
+    },
+    destroy: () => {
+      destroyed = true;
+    }
   };
 
   renderComponent(componentRef);
