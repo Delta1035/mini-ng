@@ -1,4 +1,10 @@
-import { ComponentType, LView, RenderedComponent, TView, renderComponent } from './runtime';
+import {
+  ComponentType,
+  LView,
+  RenderedComponent,
+  TView,
+  renderComponent,
+} from "./runtime";
 
 export interface BootstrapOptions {
   hostSelector?: string;
@@ -6,7 +12,7 @@ export interface BootstrapOptions {
 
 export function bootstrapApplication<TContext>(
   componentType: ComponentType<TContext>,
-  options: BootstrapOptions = {}
+  options: BootstrapOptions = {},
 ): RenderedComponent<TContext> {
   const def = componentType.cmp;
   const hostSelector = options.hostSelector ?? def.selector;
@@ -24,7 +30,7 @@ export function bootstrapApplication<TContext>(
     host,
     tView,
     lView,
-    tick: () => renderComponent(componentRef)
+    tick: () => renderComponent(componentRef),
   };
 
   renderComponent(componentRef);

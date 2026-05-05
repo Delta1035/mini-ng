@@ -16,6 +16,13 @@ export class AppComponent {
 
   readonly name: WritableSignal<string> = signal('Zhang San');
   readonly age: WritableSignal<number> = signal(20);
+
+  ngOnInit(): void {
+    window.setTimeout(() => {
+      this.name.set('Li Si');
+      this.age.set(28);
+    }, 2000);
+  }
 }
 
 export function AppComponent_Template(rf: RenderFlags, ctx: AppComponent, lView: LView<AppComponent>): void {
@@ -42,4 +49,3 @@ AppComponent.cmp = defineComponent<AppComponent>({
   vars: 2,
   template: AppComponent_Template
 });
-
