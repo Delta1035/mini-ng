@@ -2,120 +2,37 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Incremental DOM Demo</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.5;
+      padding: 24px;
+    }
+
+    #app {
+      padding: 12px 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      display: inline-block;
+      min-width: 240px;
+    }
+
+    #test-output {
+      margin-top: 16px;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+      font-size: 14px;
+    }
+  </style>
 </head>
 
 <body>
-
+  <div id="app"></div>
+  <pre id="test-output"></pre>
+  <script type="module" src="/src/main.ts"></script>
 </body>
-<script>
-    // ======================
-    // 迷你增量DOM 运行时（带更新能力）
-    // ======================
-    // LView：视图数组，按索引缓存DOM节点，全局复用
-    const LView = [];
-    // 父节点栈：自动维护嵌套父子关系
-    const parentStack = [];
-
-    // 渲染标志位 模拟 Angular RenderFlags
-    const RenderFlags = {
-        Create: 1,   // 首次创建 DOM
-        Update: 2    // 更新 不新建DOM，只改内容
-    };
-
-    function getCurrentParent() {
-        return parentStack.at(-1);
-    }
-
-    // 元素开始
-    function elementStart(index, tag) {
-        // 更新阶段：直接从 LView 取缓存节点，不新建
-        let el = LView[index];
-        if (!el) {
-            // 首次创建：新建DOM
-            el = document.createElement(tag);
-            LView[index] = el;
-            // 插入当前父节点
-            const parent = getCurrentParent();
-            parent && parent.appendChild(el);
-        }
-        // 入栈，作为子节点父容器
-        parentStack.push(el);
-    }
-
-    // 元素结束
-    function elementEnd() {
-        parentStack.pop();
-    }
-
-    // 文本节点：支持更新内容
-    function text(index, content) {
-        let textNode = LView[index];
-        if (!textNode) {
-            // 首次创建
-            textNode = document.createTextNode(content);
-            LView[index] = textNode;
-            const parent = getCurrentParent();
-            parent && parent.appendChild(textNode);
-        } else {
-            // 更新阶段：只改文本，不重建DOM
-            textNode.textContent = content;
-        }
-    }
-
-    // patch 入口：模拟Angular组件渲染入口
-    function patch(rootEl, templateFn, ctx) {
-        parentStack.push(rootEl);
-        // 先执行创建，再执行更新
-        templateFn(RenderFlags.Create, ctx);
-        templateFn(RenderFlags.Update, ctx);
-        parentStack.pop();
-    }
-
-    // ======================
-    // 模拟 Angular 编译后的模板函数
-    // rf: 渲染标志  ctx: 组件上下文(变量)
-    // ======================
-    function MyTemplate(rf, ctx) {
-        if (rf & RenderFlags.Create) {
-            // 只在首次执行：创建DOM结构
-            elementStart(0, 'div');
-            elementStart(1, 'h2');
-            text(2, ''); // 先占位，后续更新赋值
-            elementEnd();
-            elementStart(3, 'p');
-            text(4, '');
-            elementEnd();
-            elementEnd();
-        }
-
-        if (rf & RenderFlags.Update) {
-            // 更新阶段：只修改内容，不碰DOM结构
-            text(2, `用户名：${ctx.name}`);
-            text(4, `年龄：${ctx.age}`);
-        }
-    }
-
-    // ======================
-    // 测试运行：模拟组件实例 & 数据更新
-    // ======================
-    // 根容器
-    const appRoot = document.createElement('div');
-    document.body.appendChild(appRoot);
-
-    // 1. 初始数据渲染
-    const ctx1 = { name: '张三', age: 20 };
-    patch(appRoot, MyTemplate, ctx1);
-    console.log('首次渲染 LView：', LView);
-
-    // 2. 模拟数据变更，重新patch更新DOM（不新建节点，复用LView）
-    setTimeout(() => {
-        const ctx2 = { name: '李四', age: 28 };
-        patch(appRoot, MyTemplate, ctx2);
-        console.log('更新后 LView 引用不变：', LView);
-    }, 2000);
-</script>
 
 </html>
