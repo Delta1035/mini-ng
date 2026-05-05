@@ -1,10 +1,10 @@
-import { bootstrapApplication } from './bootstrap';
 import { AppComponent } from './app/app.component';
+import { bootstrapApplicationWithZone } from './zone-bootstrap';
 
-const appRef = bootstrapApplication(AppComponent);
+bootstrapApplicationWithZone(AppComponent, (appRef) => {
+  window.setTimeout(() => {
+    appRef.instance.name = 'Li Si';
+    appRef.instance.age = 28;
+  }, 2000);
+});
 
-window.setTimeout(() => {
-  appRef.instance.name = 'Li Si';
-  appRef.instance.age = 28;
-  appRef.tick();
-}, 2000);
