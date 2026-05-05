@@ -1,10 +1,10 @@
-import { mountDemo } from './demo';
+import { bootstrapApplication } from './bootstrap';
+import { AppComponent } from './app/app.component';
 
-const appRoot = document.querySelector<HTMLElement>('#app');
-const output = document.querySelector<HTMLElement>('#test-output');
+const appRef = bootstrapApplication(AppComponent);
 
-if (!appRoot || !output) {
-  throw new Error('Required demo elements are missing.');
-}
-
-mountDemo(appRoot, output);
+window.setTimeout(() => {
+  appRef.instance.name = 'Li Si';
+  appRef.instance.age = 28;
+  appRef.tick();
+}, 2000);

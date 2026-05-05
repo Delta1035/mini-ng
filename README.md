@@ -1,55 +1,36 @@
-# Incremental DOM Demo
+# Angular Lite Demo
 
-This repo now uses Vite + TypeScript + Vitest browser mode.
+This repo now simulates a small Angular-style application flow:
 
-## What it demonstrates
+- `main.ts` bootstraps the app
+- `AppComponent` holds state
+- the compiled template function uses `rf` flags and low-level instructions
+- `TView` stores static metadata
+- `LView` stores runtime DOM nodes
 
-- a tiny incremental DOM runtime
-- a template function in the style of Angular Render3 output
-- node reuse through indexed slots
-- text-only updates on later renders
+## Files
 
-## Project layout
+- `index.html`: hosts `<app-root>` and loads `src/main.ts`
+- `src/main.ts`: bootstrap entry, similar to Angular `main.ts`
+- `src/bootstrap.ts`: tiny `bootstrapApplication`
+- `src/runtime.ts`: Angular-like `TView` / `TNode` / `LView` and instructions
+- `src/app/app.component.ts`: component class plus compiled template function
+- `tests/app.component.test.ts`: browser-mode Vitest coverage
 
-- `index.html`: Vite entry page
-- `src/runtime.ts`: minimal runtime that stores nodes in `lView`
-- `src/template.ts`: the template function and context type
-- `src/demo.ts`: browser demo bootstrap
-- `src/main.ts`: Vite entry module
-- `tests/runtime.test.ts`: browser-mode Vitest coverage for creation and update behavior
+## Behavior
 
-## Angular mapping
+The app renders:
 
-- `TView`: shared static blueprint
-- `TNode`: static metadata for each node
-- `LView`: runtime state for one view instance
+- `User Name: Zhang San`
+- `Age: 20`
 
-This demo keeps only the runtime part and removes the separate static metadata layer, so the code stays small enough to inspect directly.
-
-Vitest runs these tests in a real browser via the `preview` provider, not in jsdom.
+After two seconds it mutates the component instance and runs change detection again, reusing the same DOM nodes and only updating text content.
 
 ## Scripts
 
-Install dependencies first:
-
 ```bash
 npm install
-```
-
-Run the app:
-
-```bash
 npm run dev
-```
-
-Run tests:
-
-```bash
 npm run test:run
-```
-
-Build for production:
-
-```bash
 npm run build
 ```

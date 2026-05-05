@@ -1,70 +1,155 @@
 export enum RenderFlags {
   Create = 1,
-  Update = 2,
+  Update = 2
 }
 
-export type TemplateFn<TContext> = (
-  rf: RenderFlags,
-  ctx: TContext,
-  runtime: IncrementalDomRuntime,
-) => void;
+export type TemplateFn<TContext> = (rf: RenderFlags, ctx: TContext, lView: LView<TContext>) => void;
 
-export class IncrementalDomRuntime {
-  readonly lView: Array<Node | undefined> = [];
-  private readonly parentStack: ParentNode[] = [];
-  private hasCreated = false;
+export type TNodeType = 'element' | 'text';
 
-  patch<TContext>(
-    rootEl: ParentNode,
-    templateFn: TemplateFn<TContext>,
-    ctx: TContext,
-  ): void {
-    this.parentStack.push(rootEl);
-    if (!this.hasCreated) {
-      templateFn(RenderFlags.Create, ctx, this);
-      this.hasCreated = true;
+export interface TNode {
+  index: number;
+  type: TNodeType;
+  tagName?: string;
+  parentIndex: number | null;
+}
+
+export interface ComponentDef<TContext> {
+  selector: string;
+  decls: number;
+  vars: number;
+  template: TemplateFn<TContext>;
+}
+
+export type ComponentType<TContext> = {
+  new(): TContext;
+  cmp: ComponentDef<TContext>;
+};
+
+export interface RenderedComponent<TContext> {
+  instance: TContext;
+  host: ParentNode;
+  tView: TView<TContext>;
+  lView: LView<TContext>;
+  tick: () => void;
+}
+
+export function defineComponent<TContext>(def: ComponentDef<TContext>): ComponentDef<TContext> {
+  return def;
+}
+
+export class TView<TContext> {
+  readonly data: Array<TNode | undefined>;
+  firstCreatePass = true;
+
+  constructor(
+    public readonly decls: number,
+    public readonly vars: number,
+    public readonly template: TemplateFn<TContext>
+  ) {
+    this.data = new Array(decls + vars);
+  }
+}
+
+export class LView<TContext> {
+  readonly nodes: Array<Node | undefined> = [];
+  readonly parentStack: ParentNode[] = [];
+  readonly tNodeStack: number[] = [];
+
+  constructor(
+    public readonly host: ParentNode,
+    public readonly context: TContext,
+    public readonly tView: TView<TContext>
+  ) {}
+}
+
+export function createTNode(
+  lView: LView<unknown>,
+  index: number,
+  type: TNodeType,
+  tagName?: string
+): TNode {
+  const parentIndex = lView.tNodeStack[lView.tNodeStack.length - 1] ?? null;
+  const existing = lView.tView.data[index];
+
+  if (existing) {
+    return existing;
+  }
+
+  const tNode: TNode = { index, type, tagName, parentIndex };
+  lView.tView.data[index] = tNode;
+  return tNode;
+}
+
+export function ngElementStart<TContext>(lView: LView<TContext>, index: number, tagName: string): void {
+  if (lView.tView.firstCreatePass) {
+    createTNode(lView as LView<unknown>, index, 'element', tagName);
+  }
+
+  let node = lView.nodes[index];
+
+  if (!node) {
+    node = document.createElement(tagName);
+    lView.nodes[index] = node;
+
+    const parent = getCurrentParent(lView);
+    if (parent) {
+      parent.appendChild(node);
     }
-    templateFn(RenderFlags.Update, ctx, this);
-    this.parentStack.pop();
   }
 
-  elementStart(index: number, tag: string): void {
-    let el = this.lView[index];
+  lView.parentStack.push(node as ParentNode);
+  lView.tNodeStack.push(index);
+}
 
-    if (!el) {
-      el = document.createElement(tag);
-      this.lView[index] = el;
+export function ngElementEnd<TContext>(lView: LView<TContext>): void {
+  lView.parentStack.pop();
+  lView.tNodeStack.pop();
+}
 
-      const parent = this.getCurrentParent();
-      if (parent) {
-        parent.appendChild(el);
-      }
+export function ngText<TContext>(lView: LView<TContext>, index: number, value: string): void {
+  if (lView.tView.firstCreatePass) {
+    createTNode(lView as LView<unknown>, index, 'text');
+  }
+
+  let node = lView.nodes[index];
+
+  if (!node) {
+    node = document.createTextNode(value);
+    lView.nodes[index] = node;
+
+    const parent = getCurrentParent(lView);
+    if (parent) {
+      parent.appendChild(node);
     }
+  } else {
+    node.textContent = value;
+  }
+}
 
-    this.parentStack.push(el as ParentNode);
+export function ngTextInterpolate<TContext>(
+  lView: LView<TContext>,
+  index: number,
+  value: string
+): void {
+  ngText(lView, index, value);
+}
+
+export function renderComponent<TContext>(componentRef: RenderedComponent<TContext>): void {
+  const { lView, tView } = componentRef;
+
+  lView.parentStack.push(lView.host);
+
+  if (tView.firstCreatePass) {
+    tView.template(RenderFlags.Create, lView.context, lView);
+    tView.firstCreatePass = false;
   }
 
-  elementEnd(): void {
-    this.parentStack.pop();
-  }
+  tView.template(RenderFlags.Update, lView.context, lView);
 
-  text(index: number, content: string): void {
-    let textNode = this.lView[index];
+  lView.parentStack.pop();
+}
 
-    if (!textNode) {
-      textNode = document.createTextNode(content);
-      this.lView[index] = textNode;
-
-      const parent = this.getCurrentParent();
-      if (parent) {
-        parent.appendChild(textNode);
-      }
-    } else {
-      textNode.textContent = content;
-    }
-  }
-
-  private getCurrentParent(): ParentNode | null {
-    return this.parentStack[this.parentStack.length - 1] ?? null;
-  }
+function getCurrentParent<TContext>(lView: LView<TContext>): ParentNode | null {
+  return lView.parentStack[lView.parentStack.length - 1] ?? null;
 }

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Incremental DOM Demo</title>
+  <title>Angular Lite Demo</title>
   <style>
     body {
       font-family: Arial, Helvetica, sans-serif;
@@ -12,26 +12,18 @@
       padding: 24px;
     }
 
-    #app {
+    app-root {
+      display: block;
       padding: 12px 16px;
       border: 1px solid #ccc;
       border-radius: 6px;
-      display: inline-block;
       min-width: 240px;
-    }
-
-    #test-output {
-      margin-top: 16px;
-      white-space: pre-wrap;
-      font-family: Consolas, monospace;
-      font-size: 14px;
     }
   </style>
 </head>
 
 <body>
-  <div id="app"></div>
-  <pre id="test-output"></pre>
+  <app-root></app-root>
   <script type="module" src="/src/main.ts"></script>
 </body>
 
