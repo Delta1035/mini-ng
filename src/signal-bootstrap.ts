@@ -1,14 +1,16 @@
 import '@angular/compiler';
 
-import { effect, importProvidersFrom, ɵinternalCreateApplication, provideZonelessChangeDetection, runInInjectionContext } from '@angular/core';
+import {
+  effect,
+  importProvidersFrom,
+  ɵinternalCreateApplication,
+  provideZonelessChangeDetection,
+  runInInjectionContext,
+} from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
-import { ComponentType, RenderedComponent } from './runtime';
 import { bootstrapApplication } from './bootstrap';
-
-type OnInitHook = {
-  ngOnInit?: () => void;
-};
+import { ComponentType, RenderedComponent } from './runtime';
 
 export async function bootstrapApplicationWithSignals<TContext>(
   componentType: ComponentType<TContext>,
@@ -19,21 +21,25 @@ export async function bootstrapApplicationWithSignals<TContext>(
   const angularApp = await ɵinternalCreateApplication({
     appProviders: [
       importProvidersFrom(BrowserModule),
-      provideZonelessChangeDetection()
-    ]
+      provideZonelessChangeDetection(),
+    ],
   });
 
-  runInInjectionContext(angularApp.injector, () => {
+  const effectRef = runInInjectionContext(angularApp.injector, () =>
     effect(() => {
       appRef.tick();
-    }, { injector: angularApp.injector });
-  });
+    }, { injector: angularApp.injector })
+  );
 
-  const onInit = (appRef.instance as TContext & OnInitHook).ngOnInit;
+  appRef.tick();
 
-  if (typeof onInit === 'function') {
-    onInit.call(appRef.instance);
-  }
+  const baseDestroy = appRef.destroy;
+
+  appRef.destroy = () => {
+    effectRef.destroy();
+    baseDestroy();
+  };
 
   return appRef;
 }
+

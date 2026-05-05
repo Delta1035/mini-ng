@@ -32,6 +32,7 @@ export interface RenderedComponent<TContext> {
   tView: TView<TContext>;
   lView: LView<TContext>;
   tick: () => void;
+  destroy: () => void;
 }
 
 export function defineComponent<TContext>(def: ComponentDef<TContext>): ComponentDef<TContext> {
